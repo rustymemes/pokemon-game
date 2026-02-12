@@ -52,3 +52,65 @@ fn battle_does_not_advance_when_finished() {
     assert_eq!(battle.state, BattleState::Finished);
     assert_eq!(battle.current_turn.turn_number, 1);
 }
+
+#[test]
+fn process_turn_advances_one_state_when_active() {
+    let mut battle = setup_battle();
+
+    battle.process_turn();
+
+    assert_eq!(battle.state, BattleState::SelectActions);
+    assert_eq!(battle.current_turn.turn_number, 1);
+}
+
+#[test]
+fn process_turn_does_nothing_when_finished() {
+    let mut battle = setup_battle();
+    battle.state = BattleState::Finished;
+
+    battle.process_turn();
+
+    assert_eq!(battle.state, BattleState::Finished);
+    assert_eq!(battle.current_turn.turn_number, 1);
+}
+
+#[test]
+fn process_turn_rolls_over_to_next_turn_after_full_cycle() {
+    let mut battle = setup_battle();
+
+    battle.process_turn();
+    battle.process_turn();
+    battle.process_turn();
+    battle.process_turn();
+
+    assert_eq!(battle.state, BattleState::StartTurn);
+    assert_eq!(battle.current_turn.turn_number, 2);
+}
+
+#[test]
+fn battle_is_over_when_first_party_is_all_fainted() {
+    let mut battle = setup_battle();
+    for creature in battle.parties[0].all_mut().iter_mut() {
+        creature.current_hp = 0;
+    }
+
+    battle.process_turn();
+
+    assert!(battle.is_over());
+    assert_eq!(battle.state, BattleState::Finished);
+    assert_eq!(battle.current_turn.turn_number, 1);
+}
+
+#[test]
+fn battle_is_over_when_second_party_is_all_fainted() {
+    let mut battle = setup_battle();
+    for creature in battle.parties[1].all_mut().iter_mut() {
+        creature.current_hp = 0;
+    }
+
+    battle.process_turn();
+
+    assert!(battle.is_over());
+    assert_eq!(battle.state, BattleState::Finished);
+    assert_eq!(battle.current_turn.turn_number, 1);
+}

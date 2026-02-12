@@ -90,8 +90,17 @@ impl Encounter for Battle {
             return;
         }
 
+        if self.parties.iter().any(|party| party.all_fainted()) {
+            self.state = BattleState::Finished;
+            return;
+        }
+
         // Placeholder: future logic to collect and execute actions
         self.advance_state();
+
+        if self.parties.iter().any(|party| party.all_fainted()) {
+            self.state = BattleState::Finished;
+        }
     }
 
     fn is_over(&self) -> bool {

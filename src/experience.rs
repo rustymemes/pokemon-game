@@ -178,21 +178,21 @@ mod tests {
     }
 
     #[test]
-    fn level_from_xp_between_levels() {
+    fn level_from_exp_between_levels() {
         let rate = GrowthRate::Fast;
 
-        let xp = rate.exp_for_level(level(10)) + 1;
-        assert_eq!(rate.level_from_exp(xp), level(10));
+        let exp = rate.exp_for_level(level(10)) + 1;
+        assert_eq!(rate.level_from_exp(exp), level(10));
     }
 
     #[test]
-    fn xp_to_next_level_behavior() {
+    fn exp_to_next_level_behavior() {
         let rate = GrowthRate::MediumFast;
 
-        let xp = rate.exp_for_level(level(10));
+        let exp = rate.exp_for_level(level(10));
         let needed = rate.exp_to_next_level(level(10));
 
-        assert_eq!(needed, Some(rate.exp_for_level(level(11)) - xp));
+        assert_eq!(needed, Some(rate.exp_for_level(level(11)) - exp));
     }
 
     #[test]
