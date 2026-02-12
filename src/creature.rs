@@ -87,12 +87,14 @@ impl Creature {
         species_registry: &S,
     ) -> Vec<LevelUpEvent> {
         let mut events = Vec::new();
-        self.experience += amount;
 
         let growth_rate = match species_registry.get_growth_rate(self.species_id) {
             Some(gr) => gr,
             None => panic!("things are broken with your registry"), // things are wonky if this happens
         };
+        let max_exp = growth_rate.exp_for_level(Level::new(Level::MAX).expect("Max level valid"));
+        self.experience = self.experience.saturating_add(amount).min(max_exp);
+
         while let Some(next_level) = self.level.next() {
             let next_level_exp = growth_rate.exp_for_level(next_level);
             if self.experience >= next_level_exp {
@@ -221,7 +223,7 @@ mod tests {
     use super::*;
     use crate::experience::GrowthRate;
     use crate::species::SpeciesId;
-    use crate::tests::helpers::{MockMoveRegistry, MockRegistry};
+    use crate::tests::helpers::MockRegistry;
 
     fn test_creature(level: u8, registry: &MockRegistry) -> Creature {
         Creature::new(registry.get_species(SpeciesId(1)).unwrap(), level).unwrap()
@@ -335,9 +337,8 @@ mod tests {
 
         // Give enough EXP to jump to level 15
         let events = creature.gain_exp(needed_exp, &species_registry);
-        // assuming gain_exp now returns the combined events from all level-ups
 
-        // We expect two learn-move events: for lvl 10 and lvl 15
+        // We expect two learn-move events: for levels 10 and 15
         let learn_move_events: Vec<_> = events
             .iter()
             .filter(|e| matches!(e, LevelUpEvent::CanLearnMove { .. }))
@@ -355,5 +356,25 @@ mod tests {
             LevelUpEvent::CanLearnMove { move_id } => assert_eq!(*move_id, MoveId(3)), // level 15
             _ => panic!("Expected CanLearnMove event at level 15"),
         }
+    }
+
+    #[test]
+    fn gain_exp_saturates_to_max_level_experience() {
+        let registry = MockRegistry::new();
+        let growth_rate = registry.get_growth_rate(SpeciesId(1)).unwrap();
+        let mut creature = test_creature(5, &registry);
+
+        let events = creature.gain_exp(u32::MAX, &registry);
+
+        assert_eq!(creature.level.get(), Level::MAX);
+        assert_eq!(
+            creature.experience,
+            growth_rate.exp_for_level(Level::new(Level::MAX).unwrap())
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, LevelUpEvent::CanLearnMove { .. }))
+        );
     }
 }
